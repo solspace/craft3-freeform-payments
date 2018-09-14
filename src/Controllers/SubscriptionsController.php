@@ -2,10 +2,7 @@
 
 namespace Solspace\FreeformPayments\Controllers;
 
-use \Stripe\Event;
-use Solspace\FreeformPayments\Controllers\BasePaymentsController;
-use Solspace\FreeformPayments\Integrations\PaymentGateways\Stripe;
-use Solspace\Freeform\Library\Session\CraftRequest;
+use Solspace\FreeformPayments\FreeformPayments;
 
 //TODO: create abstract controller
 class SubscriptionsController extends BasePaymentsController
@@ -20,18 +17,18 @@ class SubscriptionsController extends BasePaymentsController
         //TODO: expose json?
         $subscription = $this->getPaymentsSubscriptionsService()->getById($id);
         if (!$subscription) {
-            return $this->renderResponse('subscription not found');
+            return $this->renderResponse(FreeformPayments::t('Subscription not found'));
         }
 
         $generatedKey = sha1($subscription->resourceId);
 
         if ($validationKey != $generatedKey) {
-            return $this->renderResponse('Subscription not found');
+            return $this->renderResponse(FreeformPayments::t('Subscription not found'));
         }
 
         $result = $subscription->getIntegration()->cancelSubscription($subscription->resourceId);
         if ($result !== true) {
-            return $this->renderResponse('Error during subscription cancellation');
+            return $this->renderResponse(FreeformPayments::t('Error during subscription cancellation'));
         }
 
         return $this->renderResponse();
@@ -43,9 +40,9 @@ class SubscriptionsController extends BasePaymentsController
         $isAjax = \Craft::$app->getRequest()->isAjax;
 
         if ($error) {
-            return $isAjax ? $this->asJson(array('success' => false, 'error' => $error)) : $error;
+            return $isAjax ? $this->asJson(['success' => false, 'error' => $error]) : $error;
         }
 
-        return $isAjax ? $this->asJson(array('success' => true)) : 'Unsubscribed successfully';
+        return $isAjax ? $this->asJson(['success' => true]) : FreeformPayments::t('Unsubscribed successfully');
     }
 }

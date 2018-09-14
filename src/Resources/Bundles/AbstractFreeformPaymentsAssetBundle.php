@@ -11,6 +11,6 @@ abstract class AbstractFreeformPaymentsAssetBundle extends CpAssetBundle
      */
     protected function getSourcePath(): string
     {
-        return '@Solspace/Freeform/Resources';
+        return '@Solspace/FreeformPayments/Resources';
     }
 }

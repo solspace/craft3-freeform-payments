@@ -2,33 +2,28 @@
 
 namespace Solspace\FreeformPayments\Integrations\PaymentGateways;
 
-use Solspace\Freeform\Library\DataObjects\PlanDetails;
-use Solspace\FreeformPayments\Fields\CreditCardDetailsField;
-use Stripe as StripeAPI;
-use GuzzleHttp\Exception\RequestException;
 use Solspace\Freeform\Library\Composer\Components\Properties\PaymentProperties;
+use Solspace\Freeform\Library\DataObjects\AddressDetails;
+use Solspace\Freeform\Library\DataObjects\CustomerDetails;
 use Solspace\Freeform\Library\DataObjects\PaymentDetails;
+use Solspace\Freeform\Library\DataObjects\PlanDetails;
 use Solspace\Freeform\Library\DataObjects\SubscriptionDetails;
-use Solspace\Freeform\Library\Integrations\DataObjects\FieldObject;
-use Solspace\Freeform\Library\Integrations\PaymentGateways\DataObjects\PlanObject;
 use Solspace\Freeform\Library\Exceptions\Integrations\IntegrationException;
 use Solspace\Freeform\Library\Integrations\IntegrationStorageInterface;
 use Solspace\Freeform\Library\Integrations\PaymentGateways\AbstractPaymentGatewayIntegration;
 use Solspace\Freeform\Library\Integrations\SettingBlueprint;
-use function strtolower;
-use Solspace\Freeform\Library\DataObjects\CustomerDetails;
 use Solspace\Freeform\Library\Logging\CraftLogger;
-use Psr\Log\Test\LoggerInterfaceTest;
-use Solspace\Freeform\Library\DataObjects\AddressDetails;
-use Solspace\FreeformPayments\FreeformPayments;
-use Solspace\FreeformPayments\Models\SubscriptionPlanModel;
-use Solspace\FreeformPayments\Services\SubscriptionPlansService;
-use Solspace\FreeformPayments\Services\PaymentsService;
-use Solspace\FreeformPayments\Services\SubscriptionsService;
-use Solspace\FreeformPayments\Models\SubscriptionModel;
-use Solspace\FreeformPayments\Models\PaymentModel;
-use Solspace\FreeformPayments\Records\PaymentRecord;
 use Solspace\Freeform\Library\Payments\PaymentInterface;
+use Solspace\FreeformPayments\FreeformPayments;
+use Solspace\FreeformPayments\Models\PaymentModel;
+use Solspace\FreeformPayments\Models\SubscriptionModel;
+use Solspace\FreeformPayments\Models\SubscriptionPlanModel;
+use Solspace\FreeformPayments\Records\PaymentRecord;
+use Solspace\FreeformPayments\Services\PaymentsService;
+use Solspace\FreeformPayments\Services\SubscriptionPlansService;
+use Solspace\FreeformPayments\Services\SubscriptionsService;
+use Stripe as StripeAPI;
+use function strtolower;
 
 class Stripe extends AbstractPaymentGatewayIntegration
 {
@@ -42,17 +37,31 @@ class Stripe extends AbstractPaymentGatewayIntegration
     const PRODUCT_TYPE_SERVICE = 'service';
     const PRODUCT_TYPE_GOOD    = 'good';
 
-    const ZERO_DECIMAL_CURRENCIES = array(
-        'BIF', 'CLP', 'DJF', 'GNF', 'JPY', 'KMF', 'KRW', 'MGA', 'PYG', 'RWF', 'VND', 'VUV', 'XAF', 'XOF', 'XPF'
-    );
+    const ZERO_DECIMAL_CURRENCIES = [
+        'BIF',
+        'CLP',
+        'DJF',
+        'GNF',
+        'JPY',
+        'KMF',
+        'KRW',
+        'MGA',
+        'PYG',
+        'RWF',
+        'VND',
+        'VUV',
+        'XAF',
+        'XOF',
+        'XPF',
+    ];
 
-    const PLAN_INTERVAL_CONVERSION = array(
-        PaymentProperties::PLAN_INTERVAL_DAILY    => array('interval' => 'day', 'count' => 1),
-        PaymentProperties::PLAN_INTERVAL_WEEKLY   => array('interval' => 'week', 'count' => 1),
-        PaymentProperties::PLAN_INTERVAL_BIWEEKLY => array('interval' => 'week', 'count' => 2),
-        PaymentProperties::PLAN_INTERVAL_MONTHLY  => array('interval' => 'month', 'count' => 1),
-        PaymentProperties::PLAN_INTERVAL_ANNUALLY => array('interval' => 'year', 'count' => 1),
-    );
+    const PLAN_INTERVAL_CONVERSION = [
+        PaymentProperties::PLAN_INTERVAL_DAILY    => ['interval' => 'day', 'count' => 1],
+        PaymentProperties::PLAN_INTERVAL_WEEKLY   => ['interval' => 'week', 'count' => 1],
+        PaymentProperties::PLAN_INTERVAL_BIWEEKLY => ['interval' => 'week', 'count' => 2],
+        PaymentProperties::PLAN_INTERVAL_MONTHLY  => ['interval' => 'month', 'count' => 1],
+        PaymentProperties::PLAN_INTERVAL_ANNUALLY => ['interval' => 'year', 'count' => 1],
+    ];
 
     /** @var \Exception */
     protected $lastError = null;
@@ -77,7 +86,7 @@ class Stripe extends AbstractPaymentGatewayIntegration
 
     public static function fromStripeInterval($interval, $intervalCount)
     {
-        $stripeInterval = array('interval' => $interval, 'count' => $intervalCount);
+        $stripeInterval = ['interval' => $interval, 'count' => $intervalCount];
         return array_search($stripeInterval, self::PLAN_INTERVAL_CONVERSION);
     }
 
@@ -162,7 +171,7 @@ class Stripe extends AbstractPaymentGatewayIntegration
 
     public function fetchFields(): array
     {
-        return include __DIR__ . "/../fields/stripe.php";
+        return include __DIR__ . '/../fields/stripe.php';
     }
 
     /**
@@ -189,13 +198,13 @@ class Stripe extends AbstractPaymentGatewayIntegration
             $product = $productId;
         } else {
             //TODO: allow for customization
-            $product = array(
+            $product = [
                 'name' => 'Freeform' . ($plan->getFormName() ? ': ' . $plan->getFormName() : ' Plans'),
-                'id' => $productId,
-            );
+                'id'   => $productId,
+            ];
         }
 
-        $params = array(
+        $params = [
             'id'             => $plan->getId(),
             'nickname'       => $plan->getName(),
             'amount'         => self::toStripeAmount($plan->getAmount(), $plan->getCurrency()),
@@ -203,7 +212,7 @@ class Stripe extends AbstractPaymentGatewayIntegration
             'interval'       => $interval['interval'],
             'interval_count' => $interval['count'],
             'product'        => $product,
-        );
+        ];
 
         try {
             $data = StripeAPI\Plan::create($params);
@@ -212,7 +221,7 @@ class Stripe extends AbstractPaymentGatewayIntegration
             $model       = $planHandler->getByResourceId($data['id'], $this->getId());
 
             if ($model == null) {
-                $model = new SubscriptionPlanModel();
+                $model                = new SubscriptionPlanModel();
                 $model->integrationId = $this->getId();
                 $model->resourceId    = $data['id'];
             }
@@ -240,8 +249,10 @@ class Stripe extends AbstractPaymentGatewayIntegration
     }
 
     /**
-     * @param PaymentDetails $paymentDetails
+     * @param PaymentDetails    $paymentDetails
      * @param PaymentProperties $paymentProperties
+     *
+     * @return bool|false|mixed|PaymentModel
      */
     public function processPayment(PaymentDetails $paymentDetails, PaymentProperties $paymentProperties)
     {
@@ -249,19 +260,19 @@ class Stripe extends AbstractPaymentGatewayIntegration
 
         $this->updateSourceOwner($paymentDetails->getToken(), $paymentDetails->getCustomer());
 
-        $params = array(
-            'amount' => self::toStripeAmount($paymentDetails->getAmount(), $paymentDetails->getCurrency()),
+        $params = [
+            'amount'   => self::toStripeAmount($paymentDetails->getAmount(), $paymentDetails->getCurrency()),
             'currency' => strtolower($paymentDetails->getCurrency()),
-            'source' => $paymentDetails->getToken(),
-            'metadata' => array(
+            'source'   => $paymentDetails->getToken(),
+            'metadata' => [
                 'submission' => $submissionId,
-            ),
-        );
+            ],
+        ];
 
         $data = $this->charge($params);
 
         if ($data === false) {
-            $this->savePayment(array(), $submissionId);
+            $this->savePayment([], $submissionId);
 
             return false;
         }
@@ -271,6 +282,13 @@ class Stripe extends AbstractPaymentGatewayIntegration
         return $this->savePayment($data, $submissionId);
     }
 
+    /**
+     * @param SubscriptionDetails $subscriptionDetails
+     * @param PaymentProperties   $paymentProperties
+     *
+     * @return bool|false|mixed|SubscriptionModel
+     * @throws \Exception
+     */
     public function processSubscription(SubscriptionDetails $subscriptionDetails, PaymentProperties $paymentProperties)
     {
         $this->prepareApi();
@@ -279,21 +297,21 @@ class Stripe extends AbstractPaymentGatewayIntegration
         $submissionId    = $subscriptionDetails->getSubmissionId();
         $customerDetails = $subscriptionDetails->getCustomer();
         $planResourceId  = $subscriptionDetails->getPlan();
-        $address         = $customerDetails->getAddress() ? $this->convertAddress($customerDetails->getAddress()): null;
-        $shipping        = array(
-            'name' => $customerDetails->getName(),
+        $address         = $customerDetails->getAddress() ? $this->convertAddress($customerDetails->getAddress()) : null;
+        $shipping        = [
+            'name'    => $customerDetails->getName(),
             'address' => $address,
-        );
+        ];
 
         $this->updateSourceOwner($source, $customerDetails);
 
         try {
-            $customer = StripeAPI\Customer::create(array(
-                'source' => $source,
-                'email' => $customerDetails->getEmail(),
+            $customer = StripeAPI\Customer::create([
+                'source'      => $source,
+                'email'       => $customerDetails->getEmail(),
                 'description' => $customerDetails->getName(),
-                'shipping' => $address ? $shipping : null,
-            ));
+                'shipping'    => $address ? $shipping : null,
+            ]);
         } catch (\Exception $e) {
             $this->processError($e);
             $customer = false;
@@ -301,21 +319,21 @@ class Stripe extends AbstractPaymentGatewayIntegration
 
         $data = false;
         if ($customer !== false) {
-            $data = $customer->subscriptions->create(array(
-                'plan' => $planResourceId,
-                'metadata' => array(
+            $data = $customer->subscriptions->create([
+                'plan'     => $planResourceId,
+                'metadata' => [
                     'submission' => $submissionId,
-                ),
-            ));
+                ],
+            ]);
 
             if ($data === false) {
-                $this->saveSubscription(array(), $submissionId, $planResourceId);
+                $this->saveSubscription([], $submissionId, $planResourceId);
 
                 return false;
             }
 
-            $plan = $data['plan'];
-            $data['plan']['amount'] = self::fromStripeAmount($plan['amount'], $plan['currency']);
+            $plan                     = $data['plan'];
+            $data['plan']['amount']   = self::fromStripeAmount($plan['amount'], $plan['currency']);
             $data['plan']['interval'] = self::fromStripeInterval($plan['interval'], $plan['interval_count']);
 
             //TODO: log if this fails
@@ -324,10 +342,10 @@ class Stripe extends AbstractPaymentGatewayIntegration
 
             try {
                 $handler = $this->getSubscriptionHandler();
-                $source  = StripeAPI\Source::update($source, array('metadata' => array('subscription' => $data['id'])));
+                $source  = StripeAPI\Source::update($source, ['metadata' => ['subscription' => $data['id']]]);
 
                 $model->last4 = $source['card']['last4'];
-                $model = $handler->save($model);
+                $model        = $handler->save($model);
             } catch (\Exception $e) {
                 //TODO: log error
             }
@@ -338,7 +356,14 @@ class Stripe extends AbstractPaymentGatewayIntegration
         return false;
     }
 
-    public function cancelSubscription($resourceId, $atPeriodEnd = true)
+    /**
+     * @param      $resourceId
+     * @param bool $atPeriodEnd
+     *
+     * @return bool
+     * @throws \Exception
+     */
+    public function cancelSubscription($resourceId, $atPeriodEnd = true): bool
     {
         $this->prepareApi();
         try {
@@ -368,18 +393,18 @@ class Stripe extends AbstractPaymentGatewayIntegration
             }
         }
 
-        $plans = array();
+        $plans = [];
         $this->prepareApi();
 
         try {
             $response = StripeAPI\Plan::all();
 
             foreach ($response->autoPagingIterator() as $data) {
-                $plans[] = new SubscriptionPlanModel(array(
+                $plans[] = new SubscriptionPlanModel([
                     'integrationId' => $this->getId(),
                     'resourceId'    => $data['id'],
                     'name'          => $data['nickname'],
-                ));
+                ]);
             }
         } catch (\Exception $e) {
             $this->processError($e);
@@ -425,10 +450,10 @@ class Stripe extends AbstractPaymentGatewayIntegration
      * Return Stripe details for specific payment
      * If token is provided and no payment was found in DB it tries to recover payment data from gateway
      *
-     * @param string $submissionId
+     * @param int    $submissionId
      * @param string $token
      *
-     * @return array|false
+     * @return array|false|SubscriptionModel|PaymentInterface
      */
     public function getPaymentDetails(int $submissionId, string $token = '')
     {
@@ -478,6 +503,12 @@ class Stripe extends AbstractPaymentGatewayIntegration
         return false;
     }
 
+    /**
+     * @param mixed $id
+     *
+     * @return array|bool|\Stripe\StripeObject
+     * @throws \Exception
+     */
     public function getChargeDetails($id)
     {
         try {
@@ -487,12 +518,18 @@ class Stripe extends AbstractPaymentGatewayIntegration
         }
         $charge = $charge->__toArray();
         //TODO: constants?
-        $charge['type'] = 'charge';
+        $charge['type']   = 'charge';
         $charge['amount'] = self::fromStripeAmount($charge['amount'], $charge['currency']);
 
         return $charge;
     }
 
+    /**
+     * @param mixed $id
+     *
+     * @return array|bool|\Stripe\StripeObject
+     * @throws \Exception
+     */
     public function getSubscriptionDetails($id)
     {
         try {
@@ -500,10 +537,10 @@ class Stripe extends AbstractPaymentGatewayIntegration
         } catch (\Exception $e) {
             return $this->processError($e);
         }
-        $subscription = $subscription->__toArray();
-        $subscription['type'] = 'subscription';
-        $plan = $subscription['plan'];
-        $subscription['plan']['amount'] = self::fromStripeAmount($plan['amount'], $plan['currency']);
+        $subscription                     = $subscription->__toArray();
+        $subscription['type']             = 'subscription';
+        $plan                             = $subscription['plan'];
+        $subscription['plan']['amount']   = self::fromStripeAmount($plan['amount'], $plan['currency']);
         $subscription['plan']['interval'] = self::fromStripeInterval($plan['interval'], $plan['interval_count']);
 
         return $subscription;
@@ -533,13 +570,13 @@ class Stripe extends AbstractPaymentGatewayIntegration
      * Returns link to stripe dashboard for selected resource
      *
      * @param string $resourceId stripe resource id
-     * @param string $type resource type
+     * @param string $type       resource type
      *
      * @return string
      */
     public function getExternalDashboardLink(string $resourceId, string $type): string
     {
-        switch($type) {
+        switch ($type) {
             case PaymentInterface::TYPE_SINGLE:
                 return "https://dashboard.stripe.com/payments/$resourceId";
             case PaymentInterface::TYPE_SUBSCRIPTION:
@@ -549,6 +586,12 @@ class Stripe extends AbstractPaymentGatewayIntegration
         }
     }
 
+    /**
+     * @param $params
+     *
+     * @return bool|\Stripe\ApiResource
+     * @throws \Exception
+     */
     protected function charge($params)
     {
         $this->prepareApi();
@@ -558,7 +601,7 @@ class Stripe extends AbstractPaymentGatewayIntegration
 
             StripeAPI\Source::update(
                 $params['source'],
-                array('metadata' => array('charge' => $data['id']))
+                ['metadata' => ['charge' => $data['id']]]
             );
         } catch (\Exception $e) {
             return $this->processError($e);
@@ -567,6 +610,12 @@ class Stripe extends AbstractPaymentGatewayIntegration
         return $data;
     }
 
+    /**
+     * @param $params
+     *
+     * @return bool|\Stripe\ApiResource
+     * @throws \Exception
+     */
     protected function subscribe($params)
     {
         $this->prepareApi();
@@ -584,7 +633,7 @@ class Stripe extends AbstractPaymentGatewayIntegration
     /**
      * Updates source's owner field
      *
-     * @param string $id
+     * @param string          $id
      * @param CustomerDetails $customer
      *
      * @return void
@@ -593,13 +642,13 @@ class Stripe extends AbstractPaymentGatewayIntegration
     {
         $this->prepareApi();
 
-        $params = array(
-            'owner' => array(
-                'name'    => $customer->getName(),
-                'email'   => $customer->getEmail(),
-                'phone'   => $customer->getPhone(),
-            ),
-        );
+        $params = [
+            'owner' => [
+                'name'  => $customer->getName(),
+                'email' => $customer->getEmail(),
+                'phone' => $customer->getPhone(),
+            ],
+        ];
 
         $address = $customer->getAddress();
         if ($address) {
@@ -631,28 +680,42 @@ class Stripe extends AbstractPaymentGatewayIntegration
         $this->lastError = null;
     }
 
+    /**
+     * @param AddressDetails $address
+     *
+     * @return array
+     */
     protected function convertAddress(AddressDetails $address)
     {
-        return array(
+        return [
             'line1'       => $address->getLine1(),
             'line2'       => $address->getLine2(),
             'city'        => $address->getCity(),
             'postal_code' => $address->getPostalCode(),
             'state'       => $address->getState(),
             'country'     => $address->getCountry(),
-        );
+        ];
     }
 
+    /**
+     * @return SubscriptionPlansService
+     */
     protected function getPlanHandler(): SubscriptionPlansService
     {
         return FreeformPayments::getInstance()->subscriptionPlans;
     }
 
+    /**
+     * @return SubscriptionsService
+     */
     protected function getSubscriptionHandler(): SubscriptionsService
     {
         return FreeformPayments::getInstance()->subscriptions;
     }
 
+    /**
+     * @return PaymentsService
+     */
     protected function getPaymentHandler(): PaymentsService
     {
         return FreeformPayments::getInstance()->payments;
@@ -662,18 +725,18 @@ class Stripe extends AbstractPaymentGatewayIntegration
      * Saves payment data to db
      *
      * @param array|\Stripe\ApiResource $data
-     * @param integer $submissionId
+     * @param integer                   $submissionId
      *
      * @return PaymentModel|false
      */
     protected function savePayment($data, int $submissionId)
     {
-        $handler  = $this->getPaymentHandler();
+        $handler = $this->getPaymentHandler();
 
-        $model = new PaymentModel(array(
+        $model = new PaymentModel([
             'integrationId' => $this->getId(),
-            'submissionId' => $submissionId,
-        ));
+            'submissionId'  => $submissionId,
+        ]);
 
         $error = $this->getLastError();
         if ($error) {
@@ -685,7 +748,7 @@ class Stripe extends AbstractPaymentGatewayIntegration
             }
 
             if ($error instanceof StripeAPI\Error\Base) {
-                $data = $error->jsonBody['error'];
+                $data              = $error->jsonBody['error'];
                 $model->resourceId = isset($data['charge']) ? $data['charge'] : null;
             }
 
@@ -709,8 +772,9 @@ class Stripe extends AbstractPaymentGatewayIntegration
      * Saves submission data to DB
      *
      * @param array|\Stripe\ApiResource $data
-     * @param integer $submissionId
-     * @param string $planResourceId
+     * @param integer                   $submissionId
+     * @param string                    $planResourceId
+     *
      * @return SubscriptionModel|false
      */
     protected function saveSubscription($data, int $submissionId, string $planResourceId)
@@ -719,11 +783,11 @@ class Stripe extends AbstractPaymentGatewayIntegration
         $planHandler = $this->getPlanHandler();
         $plan        = $planHandler->getByResourceId($planResourceId, $this->getId());
 
-        $model = new SubscriptionModel(array(
+        $model = new SubscriptionModel([
             'integrationId' => $this->getId(),
-            'submissionId' => $submissionId,
-            'planId' => $plan->getId(),
-        ));
+            'submissionId'  => $submissionId,
+            'planId'        => $plan->getId(),
+        ]);
 
         $error = $this->getLastError();
         if ($error) {
@@ -735,7 +799,7 @@ class Stripe extends AbstractPaymentGatewayIntegration
             }
 
             if ($error instanceof StripeAPI\Error\Base) {
-                $data = $error->jsonBody['error'];
+                $data              = $error->jsonBody['error'];
                 $model->resourceId = isset($data['subscription']) ? $data['subscription'] : null;
             }
 
@@ -744,9 +808,9 @@ class Stripe extends AbstractPaymentGatewayIntegration
             $model->status       = PaymentRecord::STATUS_FAILED;
         } else {
             $model->resourceId = $data['id'];
-            $model->amount = $data['plan']['amount'];
-            $model->currency = $data['plan']['currency'];
-            $model->interval = $data['plan']['interval'];
+            $model->amount     = $data['plan']['amount'];
+            $model->currency   = $data['plan']['currency'];
+            $model->interval   = $data['plan']['interval'];
             if (isset($data['source'])) {
                 $model->last4 = $data['source']['card']['last4'];
             }
@@ -762,6 +826,7 @@ class Stripe extends AbstractPaymentGatewayIntegration
      * Catches and logs all Stripe errors, you can get saved error with getLastError()
      *
      * @param \Exception $exception
+     *
      * @return bool returns false
      */
     protected function processError($exception)
@@ -771,7 +836,7 @@ class Stripe extends AbstractPaymentGatewayIntegration
         $logger = new CraftLogger();
         $logger->log(CraftLogger::LEVEL_ERROR, $exception);
 
-        switch(get_class($exception)) {
+        switch (get_class($exception)) {
             case 'Stripe\Error\Card':
                 break;
 
@@ -780,7 +845,7 @@ class Stripe extends AbstractPaymentGatewayIntegration
                 if ($exception->getHttpStatus() == 404) {
                     return null;
                 }
-                // intentional fall through
+            // intentional fall through
             case 'Stripe\Error\Authentication':
             case 'Stripe\Error\RateLimit':
             case 'Stripe\Error\ApiConnection':
@@ -788,7 +853,7 @@ class Stripe extends AbstractPaymentGatewayIntegration
             case 'Stripe\Error\Api':
             case 'Stripe\Error\Idempotency':
             case 'Stripe\Error\Base':
-                $message = 'Error while processing your payment, please try later.';
+                $message         = 'Error while processing your payment, please try later.';
                 $this->lastError = new \Exception($message, 0, $exception);
                 break;
 

@@ -12,6 +12,7 @@
 namespace Solspace\FreeformPayments\Records;
 
 use craft\db\ActiveRecord;
+use Solspace\Freeform\Records\IntegrationRecord;
 use yii\db\ActiveQuery;
 
 /**

@@ -2,30 +2,29 @@
 
 namespace Solspace\FreeformPayments\Library\ElementHookHandlers;
 
-use craft\events\SetElementTableAttributeHtmlEvent;
-use craft\events\RegisterElementTableAttributesEvent;
 use craft\events\RegisterElementActionsEvent;
-use Solspace\Freeform\Elements\Submission;
-use yii\base\Event;
-use Solspace\FreeformPayments\FreeformPayments;
-use Solspace\Freeform\Freeform;
-use Solspace\Freeform\Library\Payments\PaymentInterface;
-use Solspace\Freeform\Library\Composer\Components\Fields\Interfaces\PaymentInterface as FieldPaymentInterface;
-use Solspace\FreeformPayments\Elements\Actions\FixPaymentsAction;
+use craft\events\RegisterElementTableAttributesEvent;
+use craft\events\SetElementTableAttributeHtmlEvent;
 use craft\helpers\ElementHelper;
-use Solspace\Freeform\Services\FormsService;
+use Solspace\Freeform\Elements\Submission;
+use Solspace\Freeform\Freeform;
+use Solspace\Freeform\Library\Composer\Components\Fields\Interfaces\PaymentInterface as FieldPaymentInterface;
+use Solspace\Freeform\Library\Payments\PaymentInterface;
+use Solspace\FreeformPayments\Elements\Actions\FixPaymentsAction;
+use Solspace\FreeformPayments\FreeformPayments;
+use yii\base\Event;
 
 class SubmissionHookHandler
 {
-    const COLUMN_STATUS  = 'paymentStatus';
-    const COLUMN_TYPE    = 'paymentType';
-    const COLUMN_CARD    = 'paymentCard';
+    const COLUMN_STATUS = 'paymentStatus';
+    const COLUMN_TYPE   = 'paymentType';
+    const COLUMN_CARD   = 'paymentCard';
 
-    const ATTRIBUTES = array(
+    const ATTRIBUTES = [
         self::COLUMN_TYPE   => 'Payment Type',
         self::COLUMN_STATUS => 'Payment Status',
         self::COLUMN_CARD   => 'Payment Card',
-    );
+    ];
 
     const TEMPLATE_FOLDER = 'freeform-payments/_components/fields';
 
@@ -34,30 +33,30 @@ class SubmissionHookHandler
      *
      * @return void
      */
-    static public function registerHooks()
+    public static function registerHooks()
     {
         Event::on(
             Submission::class,
             Submission::EVENT_REGISTER_TABLE_ATTRIBUTES,
-            array(self::class, 'injectTableColumns')
+            [self::class, 'injectTableColumns']
         );
 
         Event::on(
             Submission::class,
             Submission::EVENT_SET_TABLE_ATTRIBUTE_HTML,
-            array(self::class, 'renderTableColumns')
+            [self::class, 'renderTableColumns']
         );
 
         Event::on(
             Submission::class,
             Submission::EVENT_REGISTER_SORT_OPTIONS,
-            array(self::class, 'removePaymentFromSortOptions')
+            [self::class, 'removePaymentFromSortOptions']
         );
 
         Event::on(
             Submission::class,
             Submission::EVENT_REGISTER_ACTIONS,
-            array(self::class, 'registerPaymentActions')
+            [self::class, 'registerPaymentActions']
         );
     }
 
@@ -66,7 +65,7 @@ class SubmissionHookHandler
      *
      * @return void
      */
-    static public function unregisterHooks()
+    public static function unregisterHooks()
     {
         Event::off(
             Submission::class,
@@ -96,7 +95,7 @@ class SubmissionHookHandler
      *
      * @return void
      */
-    static public function injectTableColumns(RegisterElementTableAttributesEvent $event)
+    public static function injectTableColumns(RegisterElementTableAttributesEvent $event)
     {
         foreach (self::ATTRIBUTES as $attribute => $label) {
             $event->tableAttributes[$attribute] = ['label' => FreeformPayments::t($label)];
@@ -110,19 +109,19 @@ class SubmissionHookHandler
      *
      * @return void
      */
-    static public function renderTableColumns(SetElementTableAttributeHtmlEvent $event)
+    public static function renderTableColumns(SetElementTableAttributeHtmlEvent $event)
     {
         $html      = null;
         $attribute = $event->attribute;
 
         if (in_array($attribute, array_keys(self::ATTRIBUTES))) {
             $payment = self::getPayment($event);
-            $html = self::renderColumn($attribute, $payment);
-        } elseif ($event->sender->$attribute) {
+            $html    = self::renderColumn($attribute, $payment);
+        } else if ($event->sender->$attribute) {
             $field = $event->sender->$attribute;
             if ($field instanceof FieldPaymentInterface) {
                 $payment = self::getPayment($event);
-                $html = self::renderColumn(self::COLUMN_TYPE, $payment);
+                $html    = self::renderColumn(self::COLUMN_TYPE, $payment);
             }
         }
 
@@ -130,23 +129,23 @@ class SubmissionHookHandler
             return;
         }
 
-        $event->html = $html;
+        $event->html    = $html;
         $event->handled = true;
     }
 
     /**
      * Returns html for submission payments column
      *
-     * @param string $attribute
+     * @param string           $attribute
      * @param PaymentInterface $payment
      *
      * @return string
      */
-    static public function renderColumn(string $attribute, PaymentInterface $payment = null): string
+    public static function renderColumn(string $attribute, PaymentInterface $payment = null): string
     {
         $template = self::getTemplatePath($attribute);
 
-        return \Craft::$app->view->renderTemplate($template, array('payment' => $payment));
+        return \Craft::$app->view->renderTemplate($template, ['payment' => $payment]);
     }
 
     /**
@@ -156,7 +155,7 @@ class SubmissionHookHandler
      *
      * @return string
      */
-    static public function getTemplatePath(string $attribute): string
+    public static function getTemplatePath(string $attribute): string
     {
         return self::TEMPLATE_FOLDER . '/' . $attribute . '.html';
     }
@@ -168,9 +167,9 @@ class SubmissionHookHandler
      *
      * @return PaymentInterface
      */
-    static public function getPayment(Event $event)
+    public static function getPayment(Event $event)
     {
-        $submission = $event->sender;
+        $submission   = $event->sender;
         $submissionId = $submission->getId();
 
         $payment = FreeformPayments::getInstance()->subscriptions->getBySubmissionId($submissionId);
@@ -181,7 +180,7 @@ class SubmissionHookHandler
         return $payment;
     }
 
-    static public function removePaymentFromSortOptions(Event $event)
+    public static function removePaymentFromSortOptions(Event $event)
     {
         $injectedColumns = array_keys(self::ATTRIBUTES);
         $sortOptions     = $event->sortOptions;
@@ -195,18 +194,18 @@ class SubmissionHookHandler
 
                 return $carry;
             },
-            array()
+            []
         );
     }
 
-    static public function registerPaymentActions(RegisterElementActionsEvent $event)
+    public static function registerPaymentActions(RegisterElementActionsEvent $event)
     {
         // show action only for forms with payments configured
         $source = ElementHelper::findSource(Submission::class, $event->source);
         if ($source['key'] == '*') {
             return;
         }
-        $form = Freeform::getInstance()->forms->getFormByHandle($source['data']['handle']);
+        $form          = Freeform::getInstance()->forms->getFormByHandle($source['data']['handle']);
         $paymentFields = $form->getLayout()->getPaymentFields();
         if (count($paymentFields) > 0) {
             $event->actions[] = FixPaymentsAction::class;

@@ -2,10 +2,11 @@
 
 namespace Solspace\FreeformPayments\Library\ElementHookHandlers;
 
-use yii\base\Event;
 use Solspace\Freeform\Events\Forms\SaveEvent;
-use Solspace\Freeform\Services\FormsService;
 use Solspace\Freeform\Library\Composer\Components\Properties\PaymentProperties;
+use Solspace\Freeform\Services\FormsService;
+use Solspace\FreeformPayments\FreeformPayments;
+use yii\base\Event;
 
 class FormHookHandler
 {
@@ -14,12 +15,12 @@ class FormHookHandler
      *
      * @return void
      */
-    static public function registerHooks()
+    public static function registerHooks()
     {
         Event::on(
             FormsService::class,
             FormsService::EVENT_BEFORE_SAVE,
-            array(self::class, 'validate')
+            [self::class, 'validate']
         );
     }
 
@@ -28,12 +29,12 @@ class FormHookHandler
      *
      * @return void
      */
-    static public function unregisterHooks()
+    public static function unregisterHooks()
     {
         Event::off(
             FormsService::class,
             FormsService::EVENT_BEFORE_SAVE,
-            array(self::class, 'validate')
+            [self::class, 'validate']
         );
     }
 
@@ -44,11 +45,11 @@ class FormHookHandler
      *
      * @return void
      */
-    static public function validate(SaveEvent $event)
+    public static function validate(SaveEvent $event)
     {
         $formsService = $event->sender;
 
-        $formModel = $event->getModel();
+        $formModel     = $event->getModel();
         $paymentFields = $formModel->getLayout()->getPaymentFields();
         if (!$paymentFields) {
             return;
@@ -59,12 +60,12 @@ class FormHookHandler
 
         $attribute = $paymentField->getHandle();
         if (!$paymentProperties->getIntegrationId()) {
-            $formModel->addError($attribute, 'Payment gateway is not configured!');
+            $formModel->addError($attribute, FreeformPayments::t('Payment gateway is not configured!'));
         }
 
         $paymentType = $paymentProperties->getPaymentType();
         if (!$paymentType) {
-            $formModel->addError($attribute, 'Payment type is not configured!');
+            $formModel->addError($attribute, FreeformPayments::t('Payment type is not configured!'));
         }
 
         $paymentFieldMapping = $paymentProperties->getPaymentFieldMapping();
@@ -72,7 +73,7 @@ class FormHookHandler
             if (!$paymentProperties->getAmount()
                 && !isset($paymentFieldMapping[PaymentProperties::FIELD_AMOUNT])
             ) {
-                $formModel->addError($attribute, 'Payment amount is not configured!');
+                $formModel->addError($attribute, FreeformPayments::t('Payment amount is not configured!'));
             }
         } else {
             //if there are no plans to select from and form is not saved
@@ -82,7 +83,7 @@ class FormHookHandler
                 && !$paymentProperties->getPlan()
                 && !isset($paymentFieldMapping[PaymentProperties::FIELD_PLAN])
             ) {
-                $formModel->addError($attribute, 'Subscription plan is not configured!');
+                $formModel->addError($attribute, FreeformPayments::t('Subscription plan is not configured!'));
             }
         }
     }

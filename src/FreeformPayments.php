@@ -55,7 +55,7 @@ use craft\web\twig\variables\CraftVariable;
  */
 class FreeformPayments extends Plugin
 {
-    const TRANSLATION_CATEGORY = 'freeform';
+    const TRANSLATION_CATEGORY = 'freeform-payments';
 
     public $hasCpSection = false;
 

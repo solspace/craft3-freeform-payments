@@ -17,7 +17,7 @@ class FixPaymentsAction extends ElementAction
      */
     public function getTriggerLabel(): string
     {
-        return Freeform::t('Fix Missing Payments');
+        return FreeformPayments::t('Fix Missing Payments');
     }
 
     /**
@@ -37,12 +37,12 @@ class FixPaymentsAction extends ElementAction
             $form = $submissions[0]->getForm();
 
             if (!$form) {
-                throw new FreeformException(Freeform::t('Form with ID {id} not found', ['id' => $formId]));
+                throw new FreeformException(Freeform::t('Form with ID {id} not found', ['id' => $form->getId()]));
             }
 
             $paymentFields = $form->getLayout()->getPaymentFields();
             if (!$paymentFields) {
-                throw new FreeformException(Freeform::t('Form does not contain payment fields'));
+                throw new FreeformException(FreeformPayments::t('Form does not contain payment fields'));
             }
 
             $paymentFieldHandle = $paymentFields[0]->getHandle();
@@ -51,7 +51,7 @@ class FixPaymentsAction extends ElementAction
             $integration        = Freeform::getInstance()->paymentGateways->getIntegrationObjectById($integrationId);
 
             if (!$integration) {
-                throw new FreeformException(Freeform::t('Payments are not set up for the form'));
+                throw new FreeformException(FreeformPayments::t('Payments are not set up for the form'));
             }
         } else {
             throw new FreeformException(Freeform::t('No submissions found'));

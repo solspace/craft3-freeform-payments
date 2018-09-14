@@ -27,7 +27,7 @@ Freeform Payments can also be installed manually through Composer:
 
 Freeform Payments allows you to easily collect payments and subscriptions from your site users. It ties into either edition of Freeform (Lite or Pro, but one is required) and extends its functionality to include payment processing. Adding payment processing to forms in Freeform is so intuitive and simple to do. Within minutes you can have anything from a form accepting donations to a [membership registration form](https://solspace.com/craft/freeform/docs/user-registration-forms) that has users pay for a subscription at any interval level. Currently there is only an integration with Stripe, but we hope to have others in the future.
 
-Freeform Payments accepts two different types of payments: *Single* one-time payments, and recurring *Subscriptions*. The necessary credit card fields will integration seamlessly into your form and appear like the rest of your fields (and can be styled as such). For an even smoother feel for error handling and validation, try using AJAX with your form.
+Freeform Payments accepts two different types of payments: *Single* one-time payments, and recurring *Subscriptions*. The necessary credit card fields will integrate seamlessly into your form and appear like the rest of your fields (and can be styled as such). For an even smoother feel for error handling and validation, try using AJAX with your form.
 
 You are given full control to have a set payment option, allow users to fully customize their payment plan, and anything inbetween! Use regular Freeform fields for regular submission data (e.g. name, email address, etc) and even for setting payment amount, plan choices, interval choices, currency choices. Then use the Payments property editor to map your fields to Stripe accordingly.
 
@@ -36,6 +36,6 @@ Payments data can be displayed in templates and email notifications, as well as 
 It's important to note that Freeform does not store any sensitive credit card data, except for the last 4 digits of the credit card number.
 
 
-## Using Freeform
+## Using Freeform Payments
 
 Full documentation for Freeform Payments can be found on the [Solspace website](https://solspace.com/craft/freeform/docs/payments).
