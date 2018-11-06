@@ -12,7 +12,7 @@ use Solspace\Freeform\Library\Exceptions\Integrations\IntegrationException;
 use Solspace\Freeform\Library\Integrations\IntegrationStorageInterface;
 use Solspace\Freeform\Library\Integrations\PaymentGateways\AbstractPaymentGatewayIntegration;
 use Solspace\Freeform\Library\Integrations\SettingBlueprint;
-use Solspace\Freeform\Library\Logging\CraftLogger;
+use Solspace\Freeform\Library\Logging\FreeformLogger;
 use Solspace\Freeform\Library\Payments\PaymentInterface;
 use Solspace\FreeformPayments\FreeformPayments;
 use Solspace\FreeformPayments\Models\PaymentModel;
@@ -385,6 +385,7 @@ class Stripe extends AbstractPaymentGatewayIntegration
     {
         $planHandler = $this->getPlanHandler();
 
+        $plans = [];
         if (!$this->isForceUpdate()) {
             $plans = $planHandler->getByIntegrationId($this->getId());
 
@@ -393,7 +394,6 @@ class Stripe extends AbstractPaymentGatewayIntegration
             }
         }
 
-        $plans = [];
         $this->prepareApi();
 
         try {
@@ -833,9 +833,6 @@ class Stripe extends AbstractPaymentGatewayIntegration
     {
         $this->lastError = $exception;
 
-        $logger = new CraftLogger();
-        $logger->log(CraftLogger::LEVEL_ERROR, $exception);
-
         switch (get_class($exception)) {
             case 'Stripe\Error\Card':
                 break;
@@ -845,6 +842,7 @@ class Stripe extends AbstractPaymentGatewayIntegration
                 if ($exception->getHttpStatus() == 404) {
                     return null;
                 }
+
             // intentional fall through
             case 'Stripe\Error\Authentication':
             case 'Stripe\Error\RateLimit':
@@ -860,6 +858,8 @@ class Stripe extends AbstractPaymentGatewayIntegration
             default:
                 throw $exception;
         }
+
+        FreeformLogger::getInstance(FreeformLogger::STRIPE)->error($exception->getMessage());
 
         return false;
     }

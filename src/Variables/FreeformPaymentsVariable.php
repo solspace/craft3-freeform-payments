@@ -24,7 +24,7 @@ class FreeformPaymentsVariable
      */
     public function payments($submissionId)
     {
-        return $this->getPaymentsService()->getPaymentDetails($submissionId);
+        return $this->getPaymentsService()->getPaymentDetails((int) $submissionId);
     }
 
     /**
