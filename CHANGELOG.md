@@ -1,5 +1,9 @@
 # Solspace Freeform Payments Changelog
 
+## 1.0.0-beta.4 - 2018-11-12
+### Changed
+- Updated Freeform to detect if more than 1 form is loading Payments-enabled forms on the same page, and only load Stripe JS once.
+
 ## 1.0.0-beta.3 - 2018-11-06
 ### Fixed
 - Fixed a bug where Payments would sometimes error when using dynamic subscription-based payments.

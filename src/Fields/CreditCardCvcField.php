@@ -9,14 +9,28 @@ class CreditCardCvcField extends TextField
 {
     const FIELD_NAME = 'CreditCardCvc';
 
+    /**
+     * @return string
+     */
     public function getType(): string
     {
         return self::TYPE_CREDIT_CARD_CVC;
     }
 
+    /**
+     * @return bool
+     */
     public function isRequired(): bool
     {
         return true;
+    }
+
+    /**
+     * @return string
+     */
+    public function getIdAttribute(): string
+    {
+        return $this->getCustomAttributes()->getId();
     }
 
     /**

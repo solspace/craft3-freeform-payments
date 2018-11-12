@@ -80,7 +80,7 @@ class StripeService extends Component
     var id                    = '{$paymentField->getIdAttribute()}';
     var form                  = document.getElementById('{$form->getAnchor()}').parentElement;
     var ready                 = false;
-
+    
     var stripe, elements, cardNumber, cardExpiry, cardCvc;
 
     var displayStripeError = function(message) {
@@ -142,9 +142,8 @@ class StripeService extends Component
 
     form.addEventListener('reset', handleReset, false);
     form.addEventListener('submit', handleSubmit, false);
-
-    var script = document.createElement('script');
-    script.onload = function() {
+    
+    var callback = function() {
         var numberDivId       = id + '_card_number';
         var cvcDivId          = id + '_card_cvc';
         var expiryDivId       = id + '_card_expiry';
@@ -175,8 +174,17 @@ class StripeService extends Component
             ready = false;
         });
     };
-    script.src = "https://js.stripe.com/v3/";
-    document.body.appendChild(script);
+    
+    if (!window.ffStripeScript) {
+        var script = document.createElement('script');
+        document.body.appendChild(script);
+        script.addEventListener('load', callback);
+        script.src = "https://js.stripe.com/v3/";
+        
+        window.ffStripeScript = script;
+    } else {
+      window.ffStripeScript.addEventListener('load', callback);
+    }
 })();
 JS;
 
