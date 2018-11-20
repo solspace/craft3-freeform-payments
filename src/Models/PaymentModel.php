@@ -24,13 +24,4 @@ class PaymentModel extends AbstractPaymentModel
     {
         return PaymentInterface::TYPE_SINGLE;
     }
-
-    /**
-     * @return array
-     */
-    public function rules(): array
-    {
-        return [
-        ];
-    }
 }

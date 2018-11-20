@@ -21,6 +21,7 @@ class WebhooksController extends BasePaymentsController
         $request       = \Craft::$app->request;
         $payload       = $request->getRawBody();
         $integrationId = $request->getQueryParam('id');
+        /** @var Stripe $integration */
         $integration   = $this->getPaymentGatewaysService()->getIntegrationObjectById($integrationId);
 
         if (!$integration) {
@@ -45,34 +46,21 @@ class WebhooksController extends BasePaymentsController
 
         //TODO: implement all notification service call as events?
         //TODO: update payment/subscription status accordingly
-        $errorMessage = FreeformPayments::t('Event is not linked to freeform submission');
         switch ($event->type) {
             case Event::CHARGE_SUCCEEDED:
-                $submissionId = $event->data->object->metadata->submission;
-                if (!$submissionId) {
-                    throw new HttpException(400, $errorMessage);
-                }
+                $submissionId = $this->getSubmissionIdFromStripeEvent($event, $integration);
                 $this->getPaymentsNotificationService()->sendChargeSucceeded($submissionId);
                 break;
             case Event::CHARGE_FAILED:
-                $submissionId = $event->data->object->metadata->submission;
-                if (!$submissionId) {
-                    throw new HttpException(400, $errorMessage);
-                }
+                $submissionId = $this->getSubmissionIdFromStripeEvent($event, $integration);
                 $this->getPaymentsNotificationService()->sendChargeFailed($submissionId);
                 break;
             case Event::CUSTOMER_SUBSCRIPTION_CREATED:
-                $submissionId = $event->data->object->metadata->submission;
-                if (!$submissionId) {
-                    throw new HttpException(400, $errorMessage);
-                }
+                $submissionId = $this->getSubmissionIdFromStripeEvent($event, $integration);
                 $this->getPaymentsNotificationService()->sendSubscriptionCreated($submissionId);
                 break;
             case Event::CUSTOMER_SUBSCRIPTION_DELETED:
-                $submissionId = $event->data->object->metadata->submission;
-                if (!$submissionId) {
-                    throw new HttpException(400, $errorMessage);
-                }
+                $submissionId = $this->getSubmissionIdFromStripeEvent($event, $integration);
                 $this->getPaymentsNotificationService()->sendSubscriptionEnded($submissionId);
                 break;
             case Event::INVOICE_PAYMENT_SUCCEEDED:
@@ -97,5 +85,33 @@ class WebhooksController extends BasePaymentsController
         }
 
         return '';
+    }
+
+    /**
+     * @param Event  $event
+     * @param Stripe $integration
+     *
+     * @return mixed
+     * @throws HttpException
+     */
+    private function getSubmissionIdFromStripeEvent(Event $event, Stripe $integration)
+    {
+        $submissionId = $event->data->object->metadata->submission;
+        if ($submissionId) {
+            return $submissionId;
+        }
+
+        $subscriptionId = $event->data->object->source->metadata->subscription;
+        if ($subscriptionId) {
+            $subscription = $integration->getSubscriptionDetails($subscriptionId);
+
+            if (isset($subscription['metadata']['submission'])) {
+                return $subscription['metadata']['submission'];
+            }
+        }
+
+        $errorMessage = FreeformPayments::t('Event is not linked to freeform submission');
+
+        throw new HttpException(400, $errorMessage);
     }
 }

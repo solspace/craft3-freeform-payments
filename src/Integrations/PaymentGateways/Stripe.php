@@ -27,9 +27,12 @@ use function strtolower;
 
 class Stripe extends AbstractPaymentGatewayIntegration
 {
-    const SETTING_PUBLIC_KEY  = 'public_key';
-    const SETTING_SECRET_KEY  = 'secret_key';
-    const SETTING_WEBHOOK_KEY = 'webhook_key';
+    const SETTING_PUBLIC_KEY_LIVE = 'public_key_live';
+    const SETTING_SECRET_KEY_LIVE = 'secret_key_live';
+    const SETTING_PUBLIC_KEY_TEST = 'public_key_test';
+    const SETTING_SECRET_KEY_TEST = 'secret_key_test';
+    const SETTING_LIVE_MODE       = 'live_mode';
+    const SETTING_WEBHOOK_KEY     = 'webhook_key';
 
     const TITLE        = 'Stripe';
     const LOG_CATEGORY = 'Stripe';
@@ -87,6 +90,7 @@ class Stripe extends AbstractPaymentGatewayIntegration
     public static function fromStripeInterval($interval, $intervalCount)
     {
         $stripeInterval = ['interval' => $interval, 'count' => $intervalCount];
+
         return array_search($stripeInterval, self::PLAN_INTERVAL_CONVERSION);
     }
 
@@ -101,17 +105,38 @@ class Stripe extends AbstractPaymentGatewayIntegration
         return [
             new SettingBlueprint(
                 SettingBlueprint::TYPE_TEXT,
-                self::SETTING_PUBLIC_KEY,
-                'Public Key',
-                'Enter your Stripe public key here.',
+                self::SETTING_PUBLIC_KEY_LIVE,
+                'Public Key (Live)',
+                'Enter your Stripe LIVE public key here.',
                 true
             ),
             new SettingBlueprint(
                 SettingBlueprint::TYPE_TEXT,
-                self::SETTING_SECRET_KEY,
-                'Secret Key',
-                'Enter your Stripe secret key here.',
+                self::SETTING_SECRET_KEY_LIVE,
+                'Secret Key (Live)',
+                'Enter your Stripe LIVE secret key here.',
                 true
+            ),
+            new SettingBlueprint(
+                SettingBlueprint::TYPE_TEXT,
+                self::SETTING_PUBLIC_KEY_TEST,
+                'Public Key (Test)',
+                'Enter your Stripe TEST public key here.',
+                true
+            ),
+            new SettingBlueprint(
+                SettingBlueprint::TYPE_TEXT,
+                self::SETTING_SECRET_KEY_TEST,
+                'Secret Key (Test)',
+                'Enter your Stripe TEST secret key here.',
+                true
+            ),
+            new SettingBlueprint(
+                SettingBlueprint::TYPE_BOOL,
+                self::SETTING_LIVE_MODE,
+                'LIVE mode',
+                'Enable this to start using LIVE public and secret keys.',
+                false
             ),
             new SettingBlueprint(
                 SettingBlueprint::TYPE_TEXT,
@@ -159,7 +184,9 @@ class Stripe extends AbstractPaymentGatewayIntegration
      */
     public function fetchAccessToken(): string
     {
-        return $this->getSetting(self::SETTING_SECRET_KEY);
+        return $this->getSetting(
+            $this->isLiveMode() ? self::SETTING_SECRET_KEY_LIVE :self::SETTING_SECRET_KEY_TEST
+        );
     }
 
     /**
@@ -532,6 +559,7 @@ class Stripe extends AbstractPaymentGatewayIntegration
      */
     public function getSubscriptionDetails($id)
     {
+        $this->prepareApi();
         try {
             $subscription = StripeAPI\Subscription::retrieve($id);
         } catch (\Exception $e) {
@@ -553,7 +581,11 @@ class Stripe extends AbstractPaymentGatewayIntegration
      */
     public function onBeforeSave(IntegrationStorageInterface $model)
     {
-        $model->updateAccessToken($this->getSetting(self::SETTING_SECRET_KEY));
+        $model->updateAccessToken(
+            $this->getSetting(
+                $this->isLiveMode() ? self::SETTING_SECRET_KEY_LIVE :self::SETTING_SECRET_KEY_TEST
+            )
+        );
     }
 
     /**
@@ -584,6 +616,27 @@ class Stripe extends AbstractPaymentGatewayIntegration
             default:
                 return '';
         }
+    }
+
+    /**
+     * @return string
+     * @throws IntegrationException
+     */
+    public function getPublicKey(): string
+    {
+        return $this->getSetting(
+            $this->isLiveMode() ? self::SETTING_PUBLIC_KEY_LIVE : self::SETTING_PUBLIC_KEY_TEST
+        );
+    }
+
+
+    /**
+     * @return bool
+     * @throws IntegrationException
+     */
+    protected function isLiveMode(): bool
+    {
+        return $this->getSetting(self::SETTING_LIVE_MODE);
     }
 
     /**
@@ -761,6 +814,10 @@ class Stripe extends AbstractPaymentGatewayIntegration
             $model->currency   = $data['currency'];
             $model->last4      = $data['source']['card']['last4'];
             $model->status     = $data['paid'] ? PaymentRecord::STATUS_PAID : PaymentRecord::STATUS_FAILED;
+            $model->metadata   = [
+                'chargeId' => $data['id'],
+                'card'     => $data['source']['card'],
+            ];
         }
 
         $handler->save($model);
@@ -812,7 +869,11 @@ class Stripe extends AbstractPaymentGatewayIntegration
             $model->currency   = $data['plan']['currency'];
             $model->interval   = $data['plan']['interval'];
             if (isset($data['source'])) {
-                $model->last4 = $data['source']['card']['last4'];
+                $model->last4    = $data['source']['card']['last4'];
+                $model->metadata = [
+                    'chargeId' => $data['id'],
+                    'card'     => $data['source']['card'],
+                ];
             }
             $model->status = $data['status'];
         }

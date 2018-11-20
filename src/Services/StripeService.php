@@ -15,19 +15,18 @@ use craft\base\Component;
 use craft\web\View;
 use Solspace\Freeform\Events\Forms\FormRenderEvent;
 use Solspace\Freeform\Freeform;
-use Solspace\Freeform\Library\Composer\Components\Form;
-use Solspace\Freeform\Services\SettingsService;
-use Solspace\FreeformPayments\FreeformPayments;
-use Solspace\FreeformPayments\Integrations\PaymentGateways\Stripe;
-use Solspace\Freeform\Library\Composer\Components\Properties\PaymentProperties;
-use Solspace\Freeform\Library\Composer\Components\Page;
 use Solspace\Freeform\Library\Composer\Components\AbstractField;
-use Solspace\Freeform\Library\Composer\Components\Fields\SubmitField;
 use Solspace\Freeform\Library\Composer\Components\FieldInterface;
+use Solspace\Freeform\Library\Composer\Components\Fields\SubmitField;
+use Solspace\Freeform\Library\Composer\Components\Form;
+use Solspace\Freeform\Library\Composer\Components\Page;
+use Solspace\Freeform\Library\Composer\Components\Properties\PaymentProperties;
+use Solspace\Freeform\Services\SettingsService;
+use Solspace\FreeformPayments\Integrations\PaymentGateways\Stripe;
 
 class StripeService extends Component
 {
-    const FIELD_GROUP_TYPES = array(FieldInterface::TYPE_CHECKBOX_GROUP, FieldInterface::TYPE_RADIO_GROUP);
+    const FIELD_GROUP_TYPES = [FieldInterface::TYPE_CHECKBOX_GROUP, FieldInterface::TYPE_RADIO_GROUP];
 
     /**
      * Adds honeypot javascript to forms
@@ -57,10 +56,11 @@ class StripeService extends Component
      */
     public function getStripeJavascriptScript(Form $form): string
     {
-        $paymentFields         = $form->getLayout()->getPaymentFields();
-        $integrationId         = $form->getPaymentProperties()->getIntegrationId();
-        $integration           = Freeform::getInstance()->paymentGateways->getIntegrationById($integrationId);
-        $publicKey             = $integration->settings[Stripe::SETTING_PUBLIC_KEY];
+        $paymentFields = $form->getLayout()->getPaymentFields();
+        $integrationId = $form->getPaymentProperties()->getIntegrationId();
+        $integration = Freeform::getInstance()->paymentGateways->getIntegrationById($integrationId);
+
+        $publicKey             = $integration->getIntegrationObject()->getPublicKey();
         $values                = $this->getPaymentFieldJSValues($form);
         $props                 = $form->getPaymentProperties();
         $zeroDecimalCurrencies = json_encode(Stripe::ZERO_DECIMAL_CURRENCIES);
@@ -74,7 +74,7 @@ class StripeService extends Component
 
         $paymentField = $paymentFields[0];
 
-        $script =<<<JS
+        $script = <<<JS
 (function() {
     var zeroDecimalCurrencies = {$zeroDecimalCurrencies};
     var id                    = '{$paymentField->getIdAttribute()}';
@@ -199,10 +199,10 @@ JS;
         $mapping        = $props->getPaymentFieldMapping();
 
         if (!isset($mapping['amount']) && !isset($mapping['currency'])) {
-            return array(
+            return [
                 'amount'   => $staticAmount,
                 'currency' => $staticCurrency,
-            );
+            ];
         }
 
         //process 3 cases, fixed value, value on same page, value on different page
@@ -230,10 +230,10 @@ JS;
             $dynamicCurrency = "'{$form->get($mapping['currency'])->getValue()}'";
         }
 
-        return array(
+        return [
             'amount'   => $elementAmount ?? $dynamicAmount ?? $staticAmount,
             'currency' => $elementCurrency ?? $dynamicCurrency ?? $staticCurrency,
-        );
+        ];
     }
 
     /**

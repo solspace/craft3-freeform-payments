@@ -1,7 +1,7 @@
 {
   "name": "solspace/craft3-freeform-payments",
   "description": "Adds payment capabilities to Freeform.",
-  "version": "1.0.0-beta.4",
+  "version": "1.0.0-beta.5",
   "type": "craft-plugin",
   "authors": [
     {
@@ -22,7 +22,7 @@
     }
   },
   "extra": {
-    "schemaVersion": "1.0.0",
+    "schemaVersion": "1.0.2",
     "handle": "freeform-payments",
     "class": "Solspace\\FreeformPayments\\FreeformPayments",
     "name": "Freeform Payments",

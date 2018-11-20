@@ -11,15 +11,14 @@
 
 namespace Solspace\FreeformPayments\Services;
 
+use Solspace\Freeform\Freeform;
+use Solspace\Freeform\Library\Composer\Components\Form;
+use Solspace\Freeform\Library\Payments\PaymentHandlerInterface;
+use Solspace\Freeform\Library\Payments\PaymentInterface;
 use Solspace\FreeformPayments\Library\Traits\ModelServiceTrait;
 use Solspace\FreeformPayments\Models\PaymentModel;
 use Solspace\FreeformPayments\Records\PaymentRecord;
-use Solspace\Freeform\Library\Payments\PaymentHandlerInterface;
-use Solspace\Freeform\Library\Payments\PaymentInterface;
-use Solspace\FreeformPayments\Records\SubscriptionRecord;
 use yii\db\Query;
-use Solspace\Freeform\Freeform;
-use Solspace\Freeform\Library\Composer\Components\Form;
 
 class PaymentsService implements PaymentHandlerInterface
 {
@@ -29,11 +28,12 @@ class PaymentsService implements PaymentHandlerInterface
      * Returns payment for submission, only first payment is returned for subscriptions
      *
      * @param integer $submissionId
+     *
      * @return PaymentInterface|null
      */
     public function getBySubmissionId(int $submissionId)
     {
-        $data = $this->getQuery()->where(array('submissionId' => $submissionId))->all();
+        $data = $this->getQuery()->where(['submissionId' => $submissionId])->all();
         if (!$data) {
             return null;
         }
@@ -51,17 +51,17 @@ class PaymentsService implements PaymentHandlerInterface
     /**
      * Finds a payment with a matching resource id for specific integration
      *
-     * @param string $resourceId
+     * @param string  $resourceId
      * @param integer $integrationId
      *
      * @return PaymentModel|null
      */
     public function getByResourceId(string $resourceId, int $integrationId)
     {
-        $data = $this->getQuery()->where(array(
-            'resourceId' => $resourceId,
+        $data = $this->getQuery()->where([
+            'resourceId'    => $resourceId,
             'integrationId' => $integrationId,
-        ))->one();
+        ])->one();
 
         if (!$data) {
             return null;
@@ -73,7 +73,8 @@ class PaymentsService implements PaymentHandlerInterface
     /**
      * Saves payment
      *
-     * @param PaymentInterface $model
+     * @param PaymentInterface|PaymentModel $model
+     *
      * @return bool
      */
     public function save(PaymentInterface $model): bool
@@ -95,6 +96,7 @@ class PaymentsService implements PaymentHandlerInterface
         $record->currency       = $model->currency;
         $record->last4          = $model->last4;
         $record->status         = $model->status;
+        $record->metadata       = $model->metadata;
         $record->errorCode      = $model->errorCode;
         $record->errorMessage   = $model->errorMessage;
 
@@ -110,7 +112,7 @@ class PaymentsService implements PaymentHandlerInterface
     {
         if ($form === null) {
             $submission = Freeform::getInstance()->submissions->getSubmissionById($submissionId);
-            $form = $submission->getForm();
+            $form       = $submission->getForm();
         }
 
         $paymentProperties = $form->getPaymentProperties();
@@ -119,14 +121,14 @@ class PaymentsService implements PaymentHandlerInterface
             return null;
         }
 
-        $integration       = Freeform::getInstance()->paymentGateways->getIntegrationObjectById($integrationId);
+        $integration = Freeform::getInstance()->paymentGateways->getIntegrationObjectById($integrationId);
 
         return $integration->getPaymentDetails($submissionId);
     }
 
     public function updatePaymentStatus(int $submissionId, string $status)
     {
-        $payment = $this->getBySubmissionId($submissionId);
+        $payment         = $this->getBySubmissionId($submissionId);
         $payment->status = $status;
         $this->save($payment);
     }
@@ -143,6 +145,7 @@ class PaymentsService implements PaymentHandlerInterface
      * Creates model from attributes
      *
      * @param array $data
+     *
      * @return PaymentModel
      */
     protected function createModel(array $data): PaymentModel

@@ -3,9 +3,9 @@
 namespace Solspace\FreeformPayments\Models;
 
 use craft\base\Model;
-use Solspace\Freeform\Library\Payments\PaymentInterface;
 use Solspace\Freeform\Freeform;
 use Solspace\Freeform\Library\Integrations\PaymentGateways\PaymentGatewayIntegrationInterface;
+use Solspace\Freeform\Library\Payments\PaymentInterface;
 
 abstract class AbstractPaymentModel extends Model implements PaymentInterface
 {
@@ -29,6 +29,9 @@ abstract class AbstractPaymentModel extends Model implements PaymentInterface
 
     /** @var string */
     public $errorMessage;
+
+    /** @var array */
+    public $metadata;
 
     public $dateCreated;
     public $dateUpdated;
@@ -55,7 +58,7 @@ abstract class AbstractPaymentModel extends Model implements PaymentInterface
     public function getIntegration()
     {
         if (!$this->integration) {
-            $paymentGateways = Freeform::getInstance()->paymentGateways;
+            $paymentGateways   = Freeform::getInstance()->paymentGateways;
             $this->integration = $paymentGateways->getIntegrationObjectById($this->integrationId);
         }
 
@@ -73,6 +76,7 @@ abstract class AbstractPaymentModel extends Model implements PaymentInterface
         if (!$integration) {
             return '';
         }
+
         return $integration->getName();
     }
 
@@ -87,6 +91,7 @@ abstract class AbstractPaymentModel extends Model implements PaymentInterface
         if (!$integration) {
             return '';
         }
+
         return $integration->getServiceProvider();
     }
 
@@ -99,6 +104,7 @@ abstract class AbstractPaymentModel extends Model implements PaymentInterface
         if (!$integration || !$this->resourceId) {
             return '';
         }
+
         return $integration->getExternalDashboardLink($this->resourceId, $this->getType());
     }
 

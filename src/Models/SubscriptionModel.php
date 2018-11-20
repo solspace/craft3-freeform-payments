@@ -19,6 +19,9 @@ class SubscriptionModel extends AbstractPaymentModel
     public $interval;
 
     /** @var int */
+    public $intervalCount;
+
+    /** @var int */
     public $last4;
 
     /** @var SubscriptionPlanModel */
