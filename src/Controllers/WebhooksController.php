@@ -2,6 +2,7 @@
 
 namespace Solspace\FreeformPayments\Controllers;
 
+use Solspace\Freeform\Library\Logging\FreeformLogger;
 use Solspace\FreeformPayments\FreeformPayments;
 use Solspace\FreeformPayments\Integrations\PaymentGateways\Stripe;
 use Stripe\Event;
@@ -21,8 +22,9 @@ class WebhooksController extends BasePaymentsController
         $request       = \Craft::$app->request;
         $payload       = $request->getRawBody();
         $integrationId = $request->getQueryParam('id');
+
         /** @var Stripe $integration */
-        $integration   = $this->getPaymentGatewaysService()->getIntegrationObjectById($integrationId);
+        $integration = $this->getPaymentGatewaysService()->getIntegrationObjectById($integrationId);
 
         if (!$integration) {
             throw new HttpException(400, FreeformPayments::t('Invalid integration'));
@@ -48,8 +50,10 @@ class WebhooksController extends BasePaymentsController
         //TODO: update payment/subscription status accordingly
         switch ($event->type) {
             case Event::CHARGE_SUCCEEDED:
-                $submissionId = $this->getSubmissionIdFromStripeEvent($event, $integration);
-                $this->getPaymentsNotificationService()->sendChargeSucceeded($submissionId);
+                $submissionId = $this->getSubmissionIdFromStripeEvent($event, $integration, true);
+                if ($submissionId) {
+                    $this->getPaymentsNotificationService()->sendChargeSucceeded($submissionId);
+                }
                 break;
             case Event::CHARGE_FAILED:
                 $submissionId = $this->getSubmissionIdFromStripeEvent($event, $integration);
@@ -94,7 +98,7 @@ class WebhooksController extends BasePaymentsController
      * @return mixed
      * @throws HttpException
      */
-    private function getSubmissionIdFromStripeEvent(Event $event, Stripe $integration)
+    private function getSubmissionIdFromStripeEvent(Event $event, Stripe $integration, bool $suppressError = false)
     {
         $submissionId = $event->data->object->metadata->submission;
         if ($submissionId) {
@@ -110,7 +114,18 @@ class WebhooksController extends BasePaymentsController
             }
         }
 
+        if ($suppressError) {
+            return null;
+        }
+
         $errorMessage = FreeformPayments::t('Event is not linked to freeform submission');
+
+        $this->getLoggerService()
+            ->getLogger(FreeformLogger::STRIPE)
+            ->error(
+                $errorMessage,
+                ['stripe_event' => json_encode($event)]
+            );
 
         throw new HttpException(400, $errorMessage);
     }

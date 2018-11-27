@@ -1,5 +1,9 @@
 # Solspace Freeform Payments Changelog
 
+## 1.0.0 - 2018-11-27
+### Fixed
+- Fixed a bug where errors were being incorrectly logged to Freeform error log upon successful subscription creation.
+
 ## 1.0.0-beta.5 - 2018-11-20
 ### Changed
 - Updated Stripe settings to allow both LIVE and TEST keys to allow for easy switching into test mode.
