@@ -12,7 +12,6 @@
 namespace Solspace\FreeformPayments\Services;
 
 use craft\base\Component;
-use craft\web\View;
 use Solspace\Freeform\Events\Forms\FormRenderEvent;
 use Solspace\Freeform\Freeform;
 use Solspace\Freeform\Library\Composer\Components\AbstractField;
@@ -35,17 +34,16 @@ class StripeService extends Component
      */
     public function addFormJavascript(FormRenderEvent $event)
     {
-        $isFooterScripts = $this->getSettingsService()->isFooterScripts();
-        $form            = $event->getForm();
+        $form = $event->getForm();
 
         if ($this->hasPaymentFieldDisplayed($form)) {
-            $script = $this->getStripeJavascriptScript($form);
+            $ffPaymentsPath = \Yii::getAlias('@freeform-payments');
 
-            if ($isFooterScripts) {
-                \Craft::$app->view->registerJs($script, View::POS_END);
-            } else {
-                $event->appendJsToOutput($script);
-            }
+            $script = $this->getStripeJavascriptScript($form);
+            $event->appendJsToOutput($script);
+
+            $stripeJs = file_get_contents($ffPaymentsPath . '/Resources/js/form/stripe-submit.js');
+            $event->appendJsToOutput($stripeJs);
         }
     }
 
@@ -58,7 +56,7 @@ class StripeService extends Component
     {
         $paymentFields = $form->getLayout()->getPaymentFields();
         $integrationId = $form->getPaymentProperties()->getIntegrationId();
-        $integration = Freeform::getInstance()->paymentGateways->getIntegrationById($integrationId);
+        $integration   = Freeform::getInstance()->paymentGateways->getIntegrationById($integrationId);
 
         $publicKey             = $integration->getIntegrationObject()->getPublicKey();
         $values                = $this->getPaymentFieldJSValues($form);
@@ -75,117 +73,16 @@ class StripeService extends Component
         $paymentField = $paymentFields[0];
 
         $script = <<<JS
-(function() {
-    var zeroDecimalCurrencies = {$zeroDecimalCurrencies};
-    var id                    = '{$paymentField->getIdAttribute()}';
-    var form                  = document.getElementById('{$form->getAnchor()}').parentElement;
-    var ready                 = false;
-    
-    var stripe, elements, cardNumber, cardExpiry, cardCvc;
-
-    var displayStripeError = function(message) {
-        if (window.renderErrors === undefined) {
-            alert(message);
-
-            return;
-        }
-
-        if (window.removeMessages !== undefined) {
-            removeMessages(form);
-        }
-
-        renderFormErrors([message], form);
-    }
-
-    var handleSubmit = function(e) {
-        if (ready) {
-            return;
-        }
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation && e.stopImmediatePropagation();
-
-        var additionalData = {
-            type: 'card',
-            currency: {$values["currency"]},
-            usage: '{$usage}',
-        };
-
-        if (additionalData.amount) {
-            var multiplier        = zeroDecimalCurrencies.indexOf(additionalData.currency) >= 0 ? 1 :  100;
-            additionalData.amount = {$values['amount']} * multiplier;
-        }
-
-        stripe.createSource(cardNumber, additionalData).then(function(result) {
-            if (result.error) {
-                console.log(result.error);
-                displayStripeError(result.error.message + (result.error.param ? ' - ' + result.error.param : ''));
-                form.querySelector('[name="{$submitName}"]').disabled = false;
-
-                return;
-            }
-            document.getElementById(id).value = result.source.id;
-            ready = true;
-
-            if (form.dispatchEvent(new Event('submit', {cancelable: true}))) {
-                form.submit();
-            }
-        });
-        return false;
-    };
-
-    var handleReset = function () {
-        cardNumber && cardNumber.clear();
-        cardCvc && cardCvc.clear();
-        cardExpiry && cardExpiry.clear();
-    }
-
-    form.addEventListener('reset', handleReset, false);
-    form.addEventListener('submit', handleSubmit, false);
-    
-    var callback = function() {
-        var numberDivId       = id + '_card_number';
-        var cvcDivId          = id + '_card_cvc';
-        var expiryDivId       = id + '_card_expiry';
-        var numberDiv         = document.getElementById(numberDivId);
-        var cvcDiv            = document.getElementById(cvcDivId);
-        var expiryDiv         = document.getElementById(expiryDivId);
-        var numberPlaceholder = numberDiv.attributes.placeholder;
-        var expiryPlaceholder = expiryDiv.attributes.placeholder;
-        var cvcPlaceholder    = cvcDiv.attributes.placeholder;
-
-        stripe     = Stripe('{$publicKey}');
-        elements   = stripe.elements();
-        cardNumber = elements.create('cardNumber', {
-            placeholder: numberPlaceholder ? numberPlaceholder.value : '',
-        });
-        cardExpiry = elements.create('cardExpiry', {
-            placeholder: expiryPlaceholder ? expiryPlaceholder.value : '',
-        });
-        cardCvc    = elements.create('cardCvc', {
-            placeholder: cvcPlaceholder ? cvcPlaceholder.value : '',
-        });
-
-        cardNumber.mount('#' + numberDivId);
-        cardExpiry.mount('#' + expiryDivId);
-        cardCvc.mount('#' + cvcDivId);
-
-        cardNumber.on('change', function() {
-            ready = false;
-        });
-    };
-    
-    if (!window.ffStripeScript) {
-        var script = document.createElement('script');
-        document.body.appendChild(script);
-        script.addEventListener('load', callback);
-        script.src = "https://js.stripe.com/v3/";
-        
-        window.ffStripeScript = script;
-    } else {
-      window.ffStripeScript.addEventListener('load', callback);
-    }
-})();
+window.ffStripeValues = {
+  zeroDecimalCurrencies: {$zeroDecimalCurrencies},
+  id: "{$paymentField->getIdAttribute()}",
+  formAnchor: "{$form->getAnchor()}",
+  currency: {$values['currency']},
+  usage: "{$usage}",
+  amount: {$values['amount']},
+  submitName: "{$submitName}",
+  publicKey: "{$publicKey}",
+};
 JS;
 
         return $script;

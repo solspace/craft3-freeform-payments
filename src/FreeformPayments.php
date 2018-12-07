@@ -87,6 +87,7 @@ class FreeformPayments extends Plugin
     public function init()
     {
         parent::init();
+        \Yii::setAlias('@freeform-payments', __DIR__);
 
         $this->initControllers();
         $this->initServices();

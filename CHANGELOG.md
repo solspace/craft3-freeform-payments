@@ -1,5 +1,9 @@
 # Solspace Freeform Payments Changelog
 
+## 1.0.1 - 2018-12-07
+### Fixed
+- Fixed a bug where payments were not going through correctly when using with Built-in AJAX feature.
+
 ## 1.0.0 - 2018-11-27
 ### Fixed
 - Fixed a bug where errors were being incorrectly logged to Freeform error log upon successful subscription creation.
