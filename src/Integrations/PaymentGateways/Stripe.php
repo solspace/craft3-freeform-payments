@@ -380,6 +380,8 @@ class Stripe extends AbstractPaymentGatewayIntegration
             return $model;
         }
 
+        $this->saveSubscription([], $submissionId, $planResourceId);
+
         return false;
     }
 
