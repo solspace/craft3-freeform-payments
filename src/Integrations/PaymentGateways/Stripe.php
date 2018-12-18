@@ -898,7 +898,7 @@ class Stripe extends AbstractPaymentGatewayIntegration
 
         switch (get_class($exception)) {
             case 'Stripe\Error\Card':
-                break;
+                return false;
 
             case 'Stripe\Error\InvalidRequest':
                 //Resource not found

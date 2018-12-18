@@ -1,6 +1,11 @@
 # Solspace Freeform Payments Changelog
 
+## 1.0.3 - 2018-12-18
+### Fixed
+- Fixed a bug where Freeform Payments was logging credit card decline/fail errors to the Freeform error log.
+
 ## 1.0.2 - 2018-12-11
+### Fixed
 - Fixed a bug where Freeform Payments subscription transactions that failed would not contain any (failed) Payment information attached to the submission.
 
 ## 1.0.1 - 2018-12-07
