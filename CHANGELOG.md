@@ -1,5 +1,9 @@
 # Solspace Freeform Payments Changelog
 
+## 1.0.4 - 2019-04-03
+### Fixed
+- Fixed a bug where Postgres users would get an error when installing the plugin. The `resourceId` column was set to binary, but should not have been.
+
 ## 1.0.3 - 2018-12-18
 ### Fixed
 - Fixed a bug where Freeform Payments was logging credit card decline/fail errors to the Freeform error log.
