@@ -1,5 +1,9 @@
 # Solspace Freeform Payments Changelog
 
+## 1.0.5 - 2019-05-07
+### Changed
+- Updated Payments to prepare for future official Editions support in Freeform.
+
 ## 1.0.4 - 2019-04-03
 ### Fixed
 - Fixed a bug where Postgres users would get an error when installing the plugin. The `resourceId` column was set to binary, but should not have been.
