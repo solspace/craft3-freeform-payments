@@ -1,7 +1,7 @@
 {
   "name": "solspace/craft3-freeform-payments",
   "description": "Adds Stripe payment capabilities to Freeform.",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "type": "craft-plugin",
   "authors": [
     {

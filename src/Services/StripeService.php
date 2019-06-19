@@ -77,9 +77,11 @@ window.ffStripeValues = {
   zeroDecimalCurrencies: {$zeroDecimalCurrencies},
   id: "{$paymentField->getIdAttribute()}",
   formAnchor: "{$form->getAnchor()}",
-  currency: {$values['currency']},
+  currencySelector: {$values['currencySelector']},
+  currencyFixed: {$values['currencyFixed']},
   usage: "{$usage}",
-  amount: {$values['amount']},
+  amountSelector: {$values['amountSelector']},
+  amountFixed: {$values['amountFixed']},
   submitName: "{$submitName}",
   publicKey: "{$publicKey}",
 };
@@ -88,38 +90,46 @@ JS;
         return $script;
     }
 
-    private function getPaymentFieldJSValues($form)
+    /**
+     * @param Form $form
+     *
+     * @return array
+     */
+    private function getPaymentFieldJSValues(Form $form): array
     {
         $props          = $form->getPaymentProperties();
-        $staticAmount   = $props->getAmount() ? "'{$props->getAmount()}'" : "null";
-        $staticCurrency = $props->getCurrency() ? "'{$props->getCurrency()}'" : "null";
+        $staticAmount   = $props->getAmount() ? "'{$props->getAmount()}'" : null;
+        $staticCurrency = $props->getCurrency() ? "'{$props->getCurrency()}'" : null;
         $mapping        = $props->getPaymentFieldMapping();
 
         if (!isset($mapping['amount']) && !isset($mapping['currency'])) {
             return [
-                'amount'   => $staticAmount,
-                'currency' => $staticCurrency,
+                'amountSelector'   => "'null'",
+                'amountFixed'      => $staticAmount,
+                'currencySelector' => "'null'",
+                'currencyFixed'    => $staticCurrency,
             ];
         }
 
+        $elementAmount = $elementCurrency = $dynamicAmount = $dynamicCurrency = null;
         //process 3 cases, fixed value, value on same page, value on different page
         $pageFields = $form->getCurrentPage()->getFields();
-        //TODO: does not work for radio
         foreach ($pageFields as $pageField) {
-            //TODO: get name from constant
-            if (in_array($pageField->getType(), self::FIELD_GROUP_TYPES)) {
-                $valueGetter = "form.querySelector('[name={$pageField->getHandle()}]:checked').value";
+            if (in_array($pageField->getType(), self::FIELD_GROUP_TYPES, true)) {
+                $selector = "'[name={$pageField->getHandle()}]:checked'";
             } else {
-                $valueGetter = "document.getElementById('{$pageField->getIdAttribute()}').value";
+                $selector = "'#{$pageField->getIdAttribute()}'";
             }
 
             if (isset($mapping['amount']) && $mapping['amount'] == $pageField->getHandle()) {
-                $elementAmount = $valueGetter;
+                $elementAmount = $selector;
             }
+
             if (isset($mapping['currency']) && $mapping['currency'] == $pageField->getHandle()) {
-                $elementCurrency = $valueGetter;
+                $elementCurrency = $selector;
             }
         }
+
         if (isset($mapping['amount'])) {
             $dynamicAmount = "'{$form->get($mapping['amount'])->getValue()}'";
         }
@@ -128,8 +138,10 @@ JS;
         }
 
         return [
-            'amount'   => $elementAmount ?? $dynamicAmount ?? $staticAmount,
-            'currency' => $elementCurrency ?? $dynamicCurrency ?? $staticCurrency,
+            'amountSelector'   => $elementAmount ?? $dynamicAmount ?? "'null'",
+            'amountFixed'      => $elementAmount || $dynamicAmount ? "'null'" : $staticAmount,
+            'currencySelector' => $elementCurrency ?? $dynamicCurrency ?? $staticCurrency,
+            'currencyFixed'    => $elementCurrency || $dynamicCurrency ? "'null'" : $staticCurrency,
         ];
     }
 

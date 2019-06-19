@@ -1,5 +1,9 @@
 # Solspace Freeform Payments Changelog
 
+## 1.0.6 - 2019-06-19
+### Fixed
+- Fixed a bug where using Radio field type with Freeform Payments forms (for amount) were not working correctly.
+
 ## 1.0.5 - 2019-05-07
 ### Changed
 - Updated Payments to prepare for future official Editions support in Freeform.
